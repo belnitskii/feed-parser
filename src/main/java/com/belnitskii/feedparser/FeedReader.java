@@ -1,0 +1,141 @@
+package com.belnitskii.feedparser;
+
+import com.rometools.rome.feed.synd.SyndEntry;
+import com.rometools.rome.feed.synd.SyndFeed;
+import com.rometools.rome.io.SyndFeedInput;
+import com.rometools.rome.io.XmlReader;
+import jakarta.annotation.PostConstruct;
+import lombok.Getter;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Component
+public class FeedReader {
+    private final Logger logger = LoggerFactory.getLogger(FeedReader.class);
+    @Getter
+    private final Map<String, Double> userKeywords = UserKeywordsManager.loadKeywords();
+
+    private List<PostData> cachedPosts = new ArrayList<>();
+
+    @PostConstruct
+    public void init() {
+        try {
+            refreshCache();
+        } catch (IOException e) {
+            logger.error("Ошибка при начальной загрузке фида", e);
+        }
+    }
+
+    public List<PostData> readAll() {
+        List<SyndEntry> allEntries = new ArrayList<>();
+        List<PostData> result = new ArrayList<>();
+        Set<String> seenUrls = new HashSet<>();
+
+        for (String feedUrl : FeedSources.FEED_URLS) {
+            try {
+                logger.info("Чтение фида: {}", feedUrl);
+                URL url = new URL(feedUrl);
+                XmlReader reader = new XmlReader(url);
+                SyndFeedInput input = new SyndFeedInput();
+                SyndFeed feed = input.build(reader);
+                allEntries.addAll(feed.getEntries());
+                logger.info("Прочитано {} записей из {}", feed.getEntries().size(), feedUrl);
+            } catch (Exception e) {
+                logger.error("Ошибка при чтении фида: {}", feedUrl, e);
+            }
+        }
+
+        for (SyndEntry entry : allEntries) {
+            String articleUrl = entry.getLink();
+
+            if (seenUrls.contains(articleUrl)) {
+                logger.debug("Повтор статьи, пропускаем: {}", articleUrl);
+                continue;
+            }
+
+            seenUrls.add(articleUrl);
+
+            try {
+                logger.debug("Обработка статьи: {}", articleUrl);
+                Document doc = Jsoup.connect(articleUrl).get();
+                String text = doc.text();
+                List<String> keywords = extractKeywords(text);
+
+                double score = isEnglishKeywords(keywords) ? 0 : getScore(keywords);
+
+
+                logger.debug("Извлечено ключевых слов: {} | Score: {}", keywords.size(), score);
+
+                PostData post = new PostData(
+                        entry.getTitle(),
+                        articleUrl,
+                        entry.getPublishedDate(),
+                        keywords,
+                        score
+                );
+                result.add(post);
+            } catch (Exception e) {
+                logger.error("Ошибка при обработке статьи: {}", articleUrl, e);
+            }
+        }
+
+        logger.info("Итого успешно обработано {} уникальных статей", result.size());
+        return result;
+    }
+
+    private List<String> extractKeywords(String text) {
+        List<String> filteredWords = Utils.extractKeywords(text, 15);
+        Map<String, Integer> frequencyMap = new HashMap<>();
+        for (String word : filteredWords) {
+            frequencyMap.put(word, frequencyMap.getOrDefault(word, 0) + 1);
+        }
+
+        List<String> topKeywords = frequencyMap.entrySet().stream()
+                .sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue()))
+                .limit(15)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+
+        logger.debug("Top keywords: {}", topKeywords);
+        return topKeywords;
+    }
+
+    private double getScore(List<String> postKeywords) {
+        double score = 0;
+        for (String keyword : postKeywords) {
+            if (userKeywords.containsKey(keyword)) {
+                score += userKeywords.get(keyword);
+            }
+        }
+        return score;
+    }
+
+    public void refreshCache() throws IOException {
+        logger.info("Обновление кэша статей...");
+        this.cachedPosts = readAll();
+        logger.info("Кэш обновлён: {} статей", cachedPosts.size());
+    }
+
+    public List<PostData> getCachedPosts() {
+        return new ArrayList<>(cachedPosts);
+    }
+
+
+    private boolean isEnglishKeywords(List<String> keywords) {
+        int english = 0;
+        for (String word : keywords) {
+            if (word.matches("^[a-z]{3,}$")) english++;
+        }
+        double ratio = (double) english / keywords.size();
+        return ratio > 0.8;
+    }
+
+}
