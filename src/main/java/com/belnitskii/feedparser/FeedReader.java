@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Component
 public class FeedReader {
@@ -65,7 +64,10 @@ public class FeedReader {
 
             try {
                 logger.debug("Обработка статьи: {}", articleUrl);
-                Document doc = Jsoup.connect(articleUrl).get();
+                Document doc = Jsoup.connect(articleUrl)
+                        .timeout(5000)
+                        .userAgent("Mozilla/5.0")
+                        .get();
                 String text = doc.text();
                 List<String> keywords = extractKeywords(text);
 
@@ -92,20 +94,7 @@ public class FeedReader {
     }
 
     private List<String> extractKeywords(String text) {
-        List<String> filteredWords = Utils.extractKeywords(text, 15);
-        Map<String, Integer> frequencyMap = new HashMap<>();
-        for (String word : filteredWords) {
-            frequencyMap.put(word, frequencyMap.getOrDefault(word, 0) + 1);
-        }
-
-        List<String> topKeywords = frequencyMap.entrySet().stream()
-                .sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue()))
-                .limit(15)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
-
-        logger.debug("Top keywords: {}", topKeywords);
-        return topKeywords;
+        return Utils.extractKeywords(text, 15);
     }
 
     private double getScore(List<String> postKeywords) {
