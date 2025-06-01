@@ -26,7 +26,7 @@ public class Utils {
                     .filter(line -> !line.isEmpty())
                     .collect(Collectors.toSet());
         } catch (IOException | NullPointerException e) {
-            throw new RuntimeException("Не удалось загрузить стоп-слова", e);
+            throw new RuntimeException("Failed to load stop words", e);
         }
     }
 

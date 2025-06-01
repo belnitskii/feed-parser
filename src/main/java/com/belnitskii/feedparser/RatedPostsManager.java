@@ -25,7 +25,7 @@ public class RatedPostsManager {
                 String[] urls = mapper.readValue(file, String[].class);
                 ratedUrls = new HashSet<>(Set.of(urls));
             } catch (IOException e) {
-                System.err.println("Ошибка при загрузке rated_posts.json");
+                System.err.println("Error loading rated_posts.json");
                 e.printStackTrace();
             }
         }
@@ -35,7 +35,7 @@ public class RatedPostsManager {
         try {
             mapper.writeValue(file, ratedUrls);
         } catch (IOException e) {
-            System.err.println("Ошибка при сохранении rated_posts.json");
+            System.err.println("Error saving rated_posts.json");
             e.printStackTrace();
         }
     }

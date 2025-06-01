@@ -24,14 +24,16 @@ public class FeedReader {
     @Getter
     private final Map<String, Double> userKeywords = UserKeywordsManager.loadKeywords();
 
+    @Getter
     private List<PostData> cachedPosts = new ArrayList<>();
 
     @PostConstruct
     public void init() {
         try {
+            logger.info("Init post cache...");
             refreshCache();
         } catch (IOException e) {
-            logger.error("Ошибка при начальной загрузке фида", e);
+            logger.error("Error while loading feed initially", e);
         }
     }
 
@@ -42,7 +44,7 @@ public class FeedReader {
 
         for (String feedUrl : FeedSources.FEED_URLS) {
             try {
-                logger.info("Чтение фида: {}", feedUrl);
+                logger.info("Reading feed: {}", feedUrl);
 
                 URLConnection connection = new URL(feedUrl).openConnection();
                 connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
@@ -54,10 +56,10 @@ public class FeedReader {
                     SyndFeed feed = input.build(reader);
                     allEntries.addAll(feed.getEntries());
 
-                    logger.info("Прочитано {} записей из {}", feed.getEntries().size(), feedUrl);
+                    logger.info("Read {} records out of {}", feed.getEntries().size(), feedUrl);
                 }
             } catch (Exception e) {
-                logger.error("Ошибка при чтении фида: {}", feedUrl, e);
+                logger.error("Error reading feed: {}", feedUrl, e);
             }
         }
 
@@ -65,14 +67,13 @@ public class FeedReader {
             String articleUrl = entry.getLink();
 
             if (seenUrls.contains(articleUrl)) {
-                logger.debug("Повтор статьи, пропускаем: {}", articleUrl);
+                logger.debug("Repeat post, skip: {}", articleUrl);
                 continue;
             }
-
             seenUrls.add(articleUrl);
 
             try {
-                logger.debug("Обработка статьи: {}", articleUrl);
+                logger.debug("Processing post: {}", articleUrl);
                 Document doc = Jsoup.connect(articleUrl)
                         .timeout(5000)
                         .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
@@ -83,8 +84,7 @@ public class FeedReader {
 
                 double score = isEnglishKeywords(keywords) ? 0 : getScore(keywords);
 
-
-                logger.debug("Извлечено ключевых слов: {} | Score: {}", keywords.size(), score);
+                logger.debug("Keyword extracted: {} | Score: {}", keywords.size(), score);
 
                 PostData post = new PostData(
                         entry.getTitle(),
@@ -95,11 +95,11 @@ public class FeedReader {
                 );
                 result.add(post);
             } catch (Exception e) {
-                logger.error("Ошибка при обработке статьи: {}", articleUrl, e);
+                logger.error("Error processing post: {}", articleUrl, e);
             }
         }
 
-        logger.info("Итого успешно обработано {} уникальных статей", result.size());
+        logger.info("Total successfully processed {} unique posts", result.size());
         return result;
     }
 
@@ -109,8 +109,8 @@ public class FeedReader {
 
     private double getScore(List<String> postKeywords) {
         double score = 0;
-        StringBuilder allKeywordsLog = new StringBuilder("Ключевые слова: ");
-        StringBuilder weightedKeywordsLog = new StringBuilder("Взвешенные ключевые слова: ");
+        StringBuilder allKeywordsLog = new StringBuilder("Keywords: ");
+        StringBuilder weightedKeywordsLog = new StringBuilder("Weighted keywords: ");
 
         for (String keyword : postKeywords) {
             allKeywordsLog.append(keyword).append(" ");
@@ -130,15 +130,10 @@ public class FeedReader {
     }
 
     public void refreshCache() throws IOException {
-        logger.info("Обновление кэша статей...");
+        logger.info("Updating post cache...");
         this.cachedPosts = readAll();
-        logger.info("Кэш обновлён: {} статей", cachedPosts.size());
+        logger.info("Cache updated: {} posts", cachedPosts.size());
     }
-
-    public List<PostData> getCachedPosts() {
-        return new ArrayList<>(cachedPosts);
-    }
-
 
     private boolean isEnglishKeywords(List<String> keywords) {
         int english = 0;
@@ -148,5 +143,4 @@ public class FeedReader {
         double ratio = (double) english / keywords.size();
         return ratio > 0.8;
     }
-
 }

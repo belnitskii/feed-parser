@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 public class FeedService {
     static final Logger logger = LoggerFactory.getLogger(FeedService.class);
 
-
     double like = 2.0;
     double dislike = -3.0;
     double okay = 0.25;
@@ -22,11 +21,13 @@ public class FeedService {
     private final UserKeywordsManager keywordsManager;
     private final FeedReader feedReader;
     private final RatedPostsManager ratedPostsManager;
+    private final InstapaperService instapaperService;
 
-    public FeedService(UserKeywordsManager keywordsManager, FeedReader feedReader, RatedPostsManager ratedPostsManager) {
+    public FeedService(UserKeywordsManager keywordsManager, FeedReader feedReader, RatedPostsManager ratedPostsManager, InstapaperService instapaperService) {
         this.keywordsManager = keywordsManager;
         this.feedReader = feedReader;
         this.ratedPostsManager = ratedPostsManager;
+        this.instapaperService = instapaperService;
     }
 
     public List<PostData> getTop5() throws IOException {
@@ -69,5 +70,9 @@ public class FeedService {
         keywordsManager.saveKeywords(userKeywords);
         ratedPostsManager.markAsRated(postData.getUrl());
         logger.info("Post marked as rated: {}", postData.getUrl());
+    }
+
+    public boolean sendInstapaper(PostData postData) {
+        return instapaperService.saveUrlToInstapaper(postData.getUrl());
     }
 }

@@ -21,13 +21,14 @@ public class BotInitializer {
         this.telegramBot = telegramBot;
     }
 
+
     @EventListener({ContextRefreshedEvent.class})
     public void init()throws TelegramApiException {
         TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
         try{
             telegramBotsApi.registerBot(telegramBot);
         } catch (TelegramApiException e){
-            logger.error("Не удалось зарегистрировать бота", e);
+            logger.error("Failed to register bot", e);
         }
     }
 }

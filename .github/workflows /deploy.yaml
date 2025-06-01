@@ -1,0 +1,54 @@
+name: Deploy FEED-PARSER Bot
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build and Deploy
+        env:
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+
+          INSTAPAPER_EMAIL: ${{ secrets.INSTAPAPER_EMAIL }}
+          INSTAPAPER_PASSWORD: ${{ secrets.INSTAPAPER_PASSWORD }}
+
+          TELEGRAM_ID: ${{ secrets.TELEGRAM_ID }}
+
+          FEED_PARSER_BOT_NAME: ${{ secrets.FEED_PARSER_BOT_NAME }}
+          FEED_PARSER_BOT_TOKEN: ${{ secrets.FEED_PARSER_BOT_TOKEN }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H $SERVER_HOST >> ~/.ssh/known_hosts
+
+          echo "INSTAPAPER_EMAIL=$INSTAPAPER_EMAIL" >> .env
+          echo "INSTAPAPER_PASSWORD=$INSTAPAPER_PASSWORD" >> .env
+          echo "TELEGRAM_ID=$TELEGRAM_ID" >> .env
+          echo "FEED_PARSER_BOT_NAME=$FEED_PARSER_BOT_NAME" >> .env
+          echo "FEED_PARSER_BOT_TOKEN=$FEED_PARSER_BOT_TOKEN" >> .env
+          
+          echo "SERVER_USER=${SERVER_USER}" | wc -c
+          echo "SERVER_HOST=${SERVER_HOST}" | wc -c
+          
+          scp -i ~/.ssh/id_rsa .env $SERVER_USER@$SERVER_HOST:/home/belnitskii/feed-parser/.env
+          ssh -i ~/.ssh/id_rsa $SERVER_USER@$SERVER_HOST << 'EOF'
+          
+          cd /home/belnitskii/feed-parser
+          git fetch origin
+          git reset --hard origin/main
+          git pull origin main
+
+          mvn clean package -DskipTests
+          mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Xmx800m -Xms800m -XX:+UseSerialGC"
+          EOF
