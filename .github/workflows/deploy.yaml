@@ -50,5 +50,5 @@ jobs:
           git pull origin main
 
           mvn clean package -DskipTests
-          mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Xmx800m -Xms800m -XX:+UseSerialGC"
+          nohup java -Xms800m -Xmx800m -XX:+UseSerialGC -jar target/feed-parser-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
           EOF

@@ -11,7 +11,7 @@ import java.util.Set;
 @Component
 public class RatedPostsManager {
 
-    private final File file = new File("src/main/resources/rated_posts.json");
+    private final File file = new File("data/rated_posts.json");
     private final ObjectMapper mapper = new ObjectMapper();
     private Set<String> ratedUrls = new HashSet<>();
 

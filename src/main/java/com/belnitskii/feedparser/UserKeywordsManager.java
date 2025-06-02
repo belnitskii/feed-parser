@@ -13,7 +13,7 @@ import java.util.Map;
 @Component
 public class UserKeywordsManager {
     private static final Logger logger = LoggerFactory.getLogger(UserKeywordsManager.class);
-    private static final String FILE_PATH = "src/main/resources/user_keywords.json";
+    private static final String FILE_PATH = "data/user_keywords.json";
     private static final ObjectMapper mapper = new ObjectMapper();
 
     public static Map<String, Double> loadKeywords() {
