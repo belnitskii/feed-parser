@@ -51,12 +51,12 @@ jobs:
 
           mvn clean package -DskipTests
           
-          if [ -f feed-parser.pid ] && kill -0 \$(cat feed-parser.pid) 2>/dev/null; then
+          if [ -f feed-parser.pid ] && kill -0 $(cat feed-parser.pid) 2>/dev/null; then
           echo "Stopping previous process..."
-          kill \$(cat feed-parser.pid)
+          kill $(cat feed-parser.pid)
           sleep 3
           fi
   
           nohup java -Xms800m -Xmx800m -XX:+UseSerialGC -jar target/feed-parser-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
-          echo \$! > feed-parser.pid
+          echo $! > feed-parser.pid
           EOF
