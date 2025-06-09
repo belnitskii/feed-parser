@@ -18,12 +18,9 @@ jobs:
           SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
-
           INSTAPAPER_EMAIL: ${{ secrets.INSTAPAPER_EMAIL }}
           INSTAPAPER_PASSWORD: ${{ secrets.INSTAPAPER_PASSWORD }}
-
           TELEGRAM_ID: ${{ secrets.TELEGRAM_ID }}
-
           FEED_PARSER_BOT_NAME: ${{ secrets.FEED_PARSER_BOT_NAME }}
           FEED_PARSER_BOT_TOKEN: ${{ secrets.FEED_PARSER_BOT_TOKEN }}
         run: |
@@ -38,25 +35,27 @@ jobs:
           echo "FEED_PARSER_BOT_NAME=$FEED_PARSER_BOT_NAME" >> .env
           echo "FEED_PARSER_BOT_TOKEN=$FEED_PARSER_BOT_TOKEN" >> .env
           
-          echo "SERVER_USER=${SERVER_USER}" | wc -c
-          echo "SERVER_HOST=${SERVER_HOST}" | wc -c
-          
           scp -i ~/.ssh/id_rsa .env $SERVER_USER@$SERVER_HOST:/home/belnitskii/feed-parser/.env
           ssh -i ~/.ssh/id_rsa $SERVER_USER@$SERVER_HOST << 'EOF'
-          
-          cd /home/belnitskii/feed-parser
-          git fetch origin
-          git reset --hard origin/main
-          git pull origin main
+            cd /home/belnitskii/feed-parser
+            git fetch origin
+            git reset --hard origin/main
+            git pull origin main
 
-          mvn clean package -DskipTests
-          
-          if [ -f feed-parser.pid ] && kill -0 $(cat feed-parser.pid) 2>/dev/null; then
-          echo "Stopping previous process..."
-          kill $(cat feed-parser.pid)
-          sleep 3
-          fi
-  
-          nohup java -Xms800m -Xmx800m -XX:+UseSerialGC -jar target/feed-parser-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
-          echo $! > feed-parser.pid
+            mvn clean package -DskipTests
+
+            if [ -f feed-parser.pid ]; then
+              PID=$(cat feed-parser.pid)
+              if ps -p "$PID" > /dev/null 2>&1; then
+                echo "Stopping previous process with PID $PID..."
+                kill "$PID"
+                sleep 3
+              else
+                echo "No running process found with PID $PID. Removing stale PID file."
+              fi
+              rm -f feed-parser.pid
+            fi
+
+            nohup java -Xms800m -Xmx800m -XX:+UseSerialGC -jar target/feed-parser-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
+            echo $! > feed-parser.pid
           EOF
