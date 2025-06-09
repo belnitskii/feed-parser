@@ -27,7 +27,7 @@ public class FeedScheduler {
         this.feedService = feedService;
     }
 
-    @Scheduled(cron = "0 0 8 * * *")
+    @Scheduled(cron = "0 0 7 * * *")
     public void updateFeedCache() {
         try {
             logger.info("Scheduler triggered updateFeedCache() at {}", LocalDateTime.now());
@@ -37,7 +37,7 @@ public class FeedScheduler {
         }
     }
 
-    @Scheduled(cron = "0 52 4 * * *")
+    @Scheduled(cron = "0 0 8 * * *")
     public void sendScheduledPosts() {
         logger.info("Scheduler triggered sendScheduledPosts() at {}", LocalDateTime.now());
 
