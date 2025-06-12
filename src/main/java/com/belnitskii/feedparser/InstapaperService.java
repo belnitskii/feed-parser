@@ -25,14 +25,18 @@ public class InstapaperService {
     private String password;
 
     public boolean saveUrlToInstapaper(String urlToSave) {
-        logger.info("Save the link in Instapaper: {}", urlToSave);
+        logger.info("Attempting to save link to Instapaper: {}", urlToSave);
 
         try {
+            logger.debug("Creating HTTP client");
             HttpClient client = HttpClient.newHttpClient();
 
             String auth = email + ":" + password;
             String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+            logger.debug("Encoded Auth: Basic {}", maskBase64(encodedAuth));
+
             String body = "url=" + URLEncoder.encode(urlToSave, StandardCharsets.UTF_8);
+            logger.debug("Request Body: {}", body);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("https://www.instapaper.com/api/add"))
@@ -43,19 +47,27 @@ public class InstapaperService {
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build();
 
+            logger.debug("Sending HTTP request to Instapaper...");
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            logger.info("Received response from Instapaper. Status code: {}, Body: {}", response.statusCode(), response.body());
 
             if (response.statusCode() == 201) {
                 logger.info("Successfully added to Instapaper");
                 return true;
             } else {
-                logger.warn("Failed to add to Instapaper. Code: {}, Response: {}", response.statusCode(), response.body());
+                logger.warn("Failed to add to Instapaper. Status: {}, Response: {}", response.statusCode(), response.body());
                 return false;
             }
 
         } catch (Exception e) {
-            logger.error("Exception occurred while trying to add to Instapaper", e);
+            logger.error("Exception occurred while trying to connect to Instapaper", e);
             return false;
         }
+    }
+
+    private String maskBase64(String encodedAuth) {
+        if (encodedAuth.length() <= 6) return "***";
+        return encodedAuth.substring(0, 3) + "..." + encodedAuth.substring(encodedAuth.length() - 3);
     }
 }
