@@ -87,9 +87,9 @@ public class TelegramBot extends Executor {
             }
 
             else if (Objects.equals(messageText, "FEED")) {
-                sendMessage(chatId, "Trying to send top 5 posts");
+                sendMessage(chatId, "Trying to send top posts and one random");
                 try {
-                    for (PostData postData : feedService.getTop5()) {
+                    for (PostData postData : feedService.getScheduledPosts()) {
                         sendPostWithRatingButtons(chatId, postData);
                     }
                 } catch (IOException e) {
@@ -138,7 +138,7 @@ public class TelegramBot extends Executor {
                 if (matchedPost != null) {
                     assert rate != null;
                     feedService.rate(matchedPost, rate);
-                    editMessage(update, "Thanks for your rating! " + matchedPost.getTitle());
+                    editMessage(update, "Thanks for your rating! " + "[" + escapeMarkdown(matchedPost.getTitle()) + "](" + matchedPost.getUrl() + ")");
                 } else {
                     editMessage(update, "Post not found.");
                 }

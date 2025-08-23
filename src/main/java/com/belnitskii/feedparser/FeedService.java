@@ -5,9 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,19 +28,22 @@ public class FeedService {
         this.instapaperService = instapaperService;
     }
 
-    public List<PostData> getTop5() throws IOException {
-        List<PostData> top5 = feedReader.getCachedPosts().stream()
+    public List<PostData> getScheduledPosts() throws IOException {
+        List<PostData> cachedPosts = feedReader.getCachedPosts();
+        List<PostData> scheduledPosts = cachedPosts.stream()
                 .filter(post -> !ratedPostsManager.isRated(post.getUrl()))
                 .sorted(Comparator.comparingDouble(PostData::getScore).reversed())
-                .limit(5)
+                .limit(2)
                 .collect(Collectors.toList());
 
-        logger.info("Top 5 posts selected (by score):");
-        for (PostData post : top5) {
+        logger.info("Get posts selected (by score):");
+        scheduledPosts.add(cachedPosts.get(new Random().nextInt(0, cachedPosts.size() - 1)));
+        logger.info("Added random post");
+        for (PostData post : scheduledPosts) {
             logger.info("Title: {}, Score: {}, URL: {}", post.getTitle(), post.getScore(), post.getUrl());
         }
 
-        return top5;
+        return scheduledPosts;
     }
 
     public void rate(PostData postData, String rate) {

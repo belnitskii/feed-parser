@@ -42,8 +42,8 @@ public class FeedScheduler {
         logger.info("Scheduler triggered sendScheduledPosts() at {}", LocalDateTime.now());
 
         try {
-            for (PostData postData : feedService.getTop5()) {
-                telegramBot.sendPostWithRatingButtons(targetChatId, postData);
+            for (PostData postData : feedService.getScheduledPosts()) {
+            telegramBot.sendPostWithRatingButtons(targetChatId, postData);
             }
         } catch (IOException e) {
             logger.error("Error sending scheduled posts", e);
