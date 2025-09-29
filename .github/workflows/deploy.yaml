@@ -56,6 +56,6 @@ jobs:
               rm -f feed-parser.pid
             fi
 
-            nohup java -Xms800m -Xmx800m -XX:+UseSerialGC -jar target/feed-parser-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
+            nohup java -Xms1200m -Xmx1200m -XX:+UseSerialGC -jar target/feed-parser-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
             echo $! > feed-parser.pid
           EOF
